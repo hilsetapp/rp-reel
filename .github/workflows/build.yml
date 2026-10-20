@@ -10,14 +10,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
           go-version: "1.27.x"
+
+      - name: Библиотеки для GUI (vet их тоже компилирует)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libx11-xcb-dev libwayland-dev libgl1-mesa-dev libegl1-mesa-dev libvulkan-dev libxcursor-dev libxfixes-dev libxrandr-dev libxinerama-dev libxi-dev
 
       - name: Формат и линтер
         run: |
@@ -29,7 +30,7 @@ jobs:
         run: go test ./internal/...
 
       - name: ffmpeg для самопроверки
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        run: sudo apt-get install -y -qq ffmpeg
 
       - name: Самопроверка ядра (CLI, Linux)
         run: |
@@ -75,9 +76,7 @@ jobs:
       - name: Сборка GUI для Linux
         env:
           CGO_ENABLED: "1"
-        run: |
-          sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libx11-xcb-dev libwayland-dev libgl1-mesa-dev libegl1-mesa-dev libvulkan-dev libxcursor-dev libxfixes-dev libxrandr-dev libxinerama-dev libxi-dev
-          go build -ldflags "-s -w -X main.version=0.1.0" -o rp-reel-linux ./cmd/rp-reel
+        run: go build -ldflags "-s -w -X main.version=0.1.0" -o rp-reel-linux ./cmd/rp-reel
 
       - name: Архив для Windows
         run: |
