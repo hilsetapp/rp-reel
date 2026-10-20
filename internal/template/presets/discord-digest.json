@@ -1,0 +1,10 @@
+{
+  "name": "discord-digest",
+  "title": "Дайджест дня для Discord",
+  "note": "Широкие окна, до 40 клипов: целый день игры в одном ролике.",
+  "pre": 8,
+  "post": 12,
+  "minLen": 4,
+  "mergeGap": 4,
+  "maxClips": 40
+}

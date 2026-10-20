@@ -1,0 +1,20 @@
+# сборка
+rp-reel.exe
+rp-reel-cli.exe
+rp-reel-linux
+*.exe
+*.zip
+
+# результаты работы
+reel-out/
+thumbs/
+concat.txt
+
+# редакторы
+.vscode/
+.idea/
+*.swp
+
+# ос
+.DS_Store
+Thumbs.db

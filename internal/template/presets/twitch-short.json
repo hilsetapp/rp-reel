@@ -1,0 +1,10 @@
+{
+  "name": "twitch-short",
+  "title": "Короткий клип для Twitch Shorts / YouTube Shorts",
+  "note": "Узкие окна и максимум 12 клипов: только самые громкие моменты.",
+  "pre": 5,
+  "post": 7,
+  "minLen": 3,
+  "mergeGap": 3,
+  "maxClips": 12
+}

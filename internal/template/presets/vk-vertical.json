@@ -1,0 +1,12 @@
+{
+  "name": "vk-vertical",
+  "title": "Вертикаль 9:16 для VK Клипов / Reels",
+  "note": "Кадр обрезается в вертикаль, поэтому клипы перекодируются: медленнее, но зато вертикальные.",
+  "pre": 6,
+  "post": 8,
+  "minLen": 3,
+  "mergeGap": 3,
+  "maxClips": 10,
+  "reencode": true,
+  "extraArgs": ["-vf", "crop=ih*9/16:ih", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac"]
+}

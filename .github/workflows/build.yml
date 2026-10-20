@@ -1,0 +1,93 @@
+name: Сборка
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.x"
+
+      - name: Формат и линтер
+        run: |
+          gofmt -l . | tee /tmp/gofmt.out
+          if [ -s /tmp/gofmt.out ]; then echo "gofmt нашел проблемы:"; cat /tmp/gofmt.out; exit 1; fi
+          go vet ./...
+
+      - name: Тесты
+        run: go test ./internal/...
+
+      - name: ffmpeg для самопроверки
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Самопроверка ядра (CLI, Linux)
+        run: |
+          set -e
+          BASE=$(date +%s)
+          ffmpeg -y -loglevel error -f lavfi -i "testsrc=duration=300:size=320x240:rate=10" -f lavfi -i "sine=frequency=440:duration=300" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac /tmp/day.mp4
+          cat > /tmp/rpreel.jsonl <<EOF
+          {"ts":$((BASE+30)),"type":"kill","player":"Torpedo","other":"Banderas"}
+          {"ts":$((BASE+34)),"type":"wreck","player":"Banderas"}
+          {"ts":$((BASE+150)),"type":"arrest","player":"CopMike","other":"Robber"}
+          {"ts":$((BASE+260)),"type":"rob","player":"Shadow","other":"Bank"}
+          мусорная строка
+          EOF
+          go build -o /tmp/rp-reel-cli ./cmd/rp-reel-cli
+          /tmp/rp-reel-cli -log /tmp/rpreel.jsonl -video /tmp/day.mp4 -video-ts $BASE -out /tmp/selftest-out -preset discord-digest
+          test -f /tmp/selftest-out/reel.mp4
+          test -f /tmp/selftest-out/events.srt
+          test -f /tmp/selftest-out/report.txt
+          test -f /tmp/selftest-out/digest.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open("/tmp/selftest-out/digest.json"))
+          assert d["on_video"] == 4, d
+          assert len(d["clips"]) >= 2, d["clips"]
+          print("самопроверка: 4 события, клипов:", len(d["clips"]))
+          PY
+
+      - name: Сборка GUI для Windows
+        env:
+          CGO_ENABLED: "1"
+          GOOS: windows
+          GOARCH: amd64
+          CC: x86_64-w64-mingw32-gcc
+        run: go build -ldflags "-H=windowsgui -s -w -X main.version=0.1.0" -o rp-reel.exe ./cmd/rp-reel
+
+      - name: Сборка CLI для Windows
+        env:
+          CGO_ENABLED: "0"
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -ldflags "-s -w -X main.version=0.1.0" -o rp-reel-cli.exe ./cmd/rp-reel-cli
+
+      - name: Сборка GUI для Linux
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          sudo apt-get install -y -qq libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libx11-xcb-dev libwayland-dev libgl1-mesa-dev libegl1-mesa-dev libvulkan-dev libxcursor-dev libxfixes-dev libxrandr-dev libxinerama-dev libxi-dev
+          go build -ldflags "-s -w -X main.version=0.1.0" -o rp-reel-linux ./cmd/rp-reel
+
+      - name: Архив для Windows
+        run: |
+          mkdir -p staging
+          cp rp-reel.exe rp-reel-cli.exe staging/
+          cp README.md README.en.md LICENSE CHANGELOG.md КАК-ЗАПУСТИТЬ.txt staging/
+          cp -r plugins staging/plugins
+          mkdir -p staging/templates
+          cp internal/template/presets/README.md staging/templates/
+          cd staging && zip -qr ../rp-reel-windows.zip . && cd ..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rp-reel-windows
+          path: rp-reel-windows.zip
